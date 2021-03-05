@@ -1,7 +1,7 @@
 # CMU Interactive Data Science Assigment 2
 
-* **Team members**: XXXX@andrew.cmu.edu and XXXX@andrew.cmu.edu (Update XXXX with your team's emails)
-* **Online URL**: https://share.streamlit.io/cmu-ids-2021/YYYY/master/streamlit_app.py (Update YYYY with your repo name)
+* **Team members**: amichell@andrew.cmu.edu and cvajiac@andrew.cmu.edu
+* **Online URL**: https://share.streamlit.io/cmu-ids-2021/assignment-2-05839-catalina-andre/master/streamlit_app.py (Update YYYY with your repo name)
 
 ## Instructions
 
