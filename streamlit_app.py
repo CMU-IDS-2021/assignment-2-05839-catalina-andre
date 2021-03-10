@@ -2,13 +2,28 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
+from sklearn.cluster import DBSCAN, KMeans
+from sklearn.manifold import TSNE
+
+
+def clustering_visual(df):
+  feature_matrix = df.select_dtypes(include='number').to_numpy(na_value=0)
+  clustering = KMeans().fit(feature_matrix)
+  tsne_embed = TSNE().fit_transform(feature_matrix)
+
+  tsne_df = pd.DataFrame({
+    'tsne_x': tsne_embed[:, 0],
+    'tsne_y': tsne_embed[:, 1],
+    'cluster': clustering.labels_})
+  return tsne_df
+
 st.title("Let's analyze some Social Mobility Data 📊.")
 
 
 @st.cache  # add caching so we load the data only once
 def load_data():
     # Load the social mobility data from Opportunity Insights
-    return pd.read_csv("health_ineq_online_table_12.csv")
+    return pd.read_csv("health_ineq_online_table_12.csv", encoding = "ISO-8859-1")
 
 
 df = load_data()
@@ -33,9 +48,60 @@ chart = alt.Chart(df).mark_point().encode(
 
 st.write(chart)
 
+st.write(df.median_house_value)
+
+
 st.write(
     "Yikes, that isn't super helpful, everyone is bunched in the corner and the states are too numerous to be clearly "
     "visible! Maybe we could do some filtering?")
+
+
+# have to specify y domain, otherwise the plot renders strangely, not sure why
+chart = alt.Chart(df).mark_point().encode(
+    x=alt.X("cty_pop2000", scale=alt.Scale(type='log')),
+    y=alt.Y("median_house_value", scale=alt.Scale(type='log', domain=[1, 10000000])),
+    color=alt.condition(picked, "statename:N", alt.value("lightgray"))
+).properties(
+    width=600, height=400
+).interactive().add_selection(picked)
+
+st.write(chart)
+
+st.write('Here is a first attempt at making this plot better by using log scales.',
+    'Unfortunately, still a bit crowded...')
+
+
+# avg all counties for each state, plot that avg as representative
+agg_df = df.groupby('statename').mean()
+agg_df['statename'] = [name for name, _ in df.groupby('statename')]
+
+chart = alt.Chart(agg_df).mark_point().encode(
+    x=alt.X("cty_pop2000", scale=alt.Scale(type='log')),
+    y=alt.Y("median_house_value", scale=alt.Scale(type='log', domain=[1, 10000000])),
+    color=alt.condition(picked, "statename:N", alt.value("lightgray"))
+).properties(
+    width=600, height=400
+).interactive().add_selection(picked)
+st.write(chart)
+
+st.write('This is less crowded and shows that median_house_value & city_pop2000 are not correlated',
+    'We should add tooltips so that on hover for each point, you see the state.',
+    'Also, instead of having both log-scale and linear scale plots, we can have a checkbox toggle for this')
+
+
+tsne_df = clustering_visual(df)
+
+chart = alt.Chart(tsne_df).mark_point().encode(
+    x=alt.X("tsne_x"),
+    y=alt.Y("tsne_y"),
+    color=alt.condition(picked, "cluster:N", alt.value("lightgray"))
+).properties(
+    width=600, height=400
+).interactive().add_selection(picked)
+st.write(chart)
+
+st.write("What I've done above is running kmeans clustering on all numeric data. We can probably find a better clustering",
+"But, the point is to answer 'Which counties are similar? We might find some interesting relationships this way.")
 
 # Observed Relationships in the data (generally at the state level seems to be appropriate for exploration
 """
@@ -61,6 +127,12 @@ General Ideas for a story to tell with the Data:
     areas people are staying in or moving to
   - again misconceptions could be interesting, like considering household income, home value, crime,
     education, etc.
+- Which features are correlated?
+  - Can make a SPLOM of select features -- either we curate these manually or programatically (i.e. try to fit line/curve to pair-plots)
+  - Can let users select multiple features from a list (maybe with checkboxes)
+- Which counties are most similar to each other?
+  - Conjecture: this will not align with states: i.e. counties containing large cities will probably be more similar.
+  - Might be too much for this homework, but we could maybe run clustering algortihms using these features.
 
 Our design in greater detail:
 - A single map showing the entire US with charts showing aggregate statistics on the right
@@ -69,6 +141,7 @@ Our design in greater detail:
   selected feature to compare more broadly.
     - sub-plots below compare the states more directly in different areas.
 - Can guide a viewer through a story to expose differences between the Northeast and Southeast,
-  mid-west and south-west, and/or the pacific north-west
+  mid-west and south-west, and/or the pacific north-west.
+  A map from state to region can be found here: https://github.com/cphalpert/census-regions/blob/master/us%20census%20bureau%20regions%20and%20divisions.csv.
 
 """
