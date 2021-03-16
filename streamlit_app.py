@@ -36,6 +36,10 @@ def load_data():
     df['fips'] = ['{:05}'.format(num) for num in df.cty]
     return df
 
+@st.cache
+def load_counties():
+    return alt.topo_feature(data.us_10m.url, 'counties')
+
 
 def choro_map(geo_data, df, column, scale):
   tooltip_cols = ('properties.name:O', 'properties.state:O', '{}:Q'.format(column))
@@ -105,17 +109,12 @@ chart = alt.Chart(df).mark_point().encode(
 
 st.write(chart)
 
-st.write(df.median_house_value)
 
-scale = scale_dropdown('pair_plot_scale')
-x_str = feature_dropdown('Choose x-axis feature.', 'x_feature', 'cty_pop2000')
-y_str = feature_dropdown('Choose y-axis feature.', 'y_feature', 'median_house_value')
-st.write(pair_plot(df, x_str, y_str, scale, [x_str, y_str, 'county_name', 'statename']))
+st.write("Yikes, that isn't super helpful, everyone is bunched in the corner and the states are too numerous to be "
+         "clearly visible! Maybe we could do some filtering?")
 
-
-st.write(
-    "Yikes, that isn't super helpful, everyone is bunched in the corner and the states are too numerous to be clearly "
-    "visible! Maybe we could do some filtering?")
+st.write('Here is a first attempt at making this plot better by using log scales. '
+         'Unfortunately, still a bit crowded...')
 
 # have to specify y domain, otherwise the plot renders strangely, not sure why
 chart = alt.Chart(df).mark_point().encode(
@@ -128,8 +127,12 @@ chart = alt.Chart(df).mark_point().encode(
 
 st.write(chart)
 
-st.write('Here is a first attempt at making this plot better by using log scales.',
-    'Unfortunately, still a bit crowded...')
+st.write(df.median_house_value)
+
+scale = scale_dropdown('pair_plot_scale')
+x_str = feature_dropdown('Choose x-axis feature.', 'x_feature', 'cty_pop2000')
+y_str = feature_dropdown('Choose y-axis feature.', 'y_feature', 'median_house_value')
+st.write(pair_plot(df, x_str, y_str, scale, [x_str, y_str, 'county_name', 'statename']))
 
 
 # avg all counties for each state, plot that avg as representative
@@ -158,22 +161,22 @@ st.write("What I've done above is running kmeans clustering on all numeric data.
 "But, the point is to answer 'Which counties are similar? We might find some interesting relationships this way.")
 
 
-counties = alt.topo_feature(data.us_10m.url, 'counties')
-source = df.to_json()
+counties = load_counties()
 
-us_map = alt.Chart(counties).mark_geoshape().encode(
-    color='rate:Q'
+counties_map = alt.Chart(counties).mark_geoshape().encode(
+    tooltip=["hhinc00:Q", 'county_name:N', 'statename:N'],
+    color='hhinc00:Q'
 ).transform_lookup(
     lookup='id',
-    from_=alt.LookupData(df, 'cty', ['hhinc00'])
+    from_=alt.LookupData(df, 'cty', ['hhinc00', 'county_name', 'statename'])
 ).project(
     type='albersUsa'
 ).properties(
-    width=500,
-    height=300
+    width=700,
+    height=500
 )
 
-st.write(us_map)
+st.write(counties_map)
 
 # Observed Relationships in the data (generally at the state level seems to be appropriate for exploration
 """
@@ -204,7 +207,7 @@ General Ideas for a story to tell with the Data:
   - Can let users select multiple features from a list (maybe with checkboxes)
 - Which counties are most similar to each other?
   - Conjecture: this will not align with states: i.e. counties containing large cities will probably be more similar.
-  - Might be too much for this homework, but we could maybe run clustering algortihms using these features.
+  - Might be too much for this homework, but we could maybe run clustering algorithms using these features.
 
 Our design in greater detail:
 - A single map showing the entire US with charts showing aggregate statistics on the right
