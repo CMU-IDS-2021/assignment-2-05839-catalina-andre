@@ -6,6 +6,15 @@ from sklearn.cluster import DBSCAN, KMeans
 from sklearn.manifold import TSNE
 
 
+@st.cache
+def load_geodata():
+  return alt.topo_feature(
+    "https://raw.githubusercontent.com/deldersveld/topojson/master/countries/united-states/us-albers-counties.json",
+    "collection"
+  )
+
+
+@st.cache
 def clustering_visual(df):
   feature_matrix = df.select_dtypes(include='number').to_numpy(na_value=0)
   clustering = KMeans().fit(feature_matrix)
@@ -20,10 +29,30 @@ def clustering_visual(df):
 st.title("Let's analyze some Social Mobility Data 📊.")
 
 
-@st.cache  # add caching so we load the data only once
+@st.cache
 def load_data():
     # Load the social mobility data from Opportunity Insights
-    return pd.read_csv("health_ineq_online_table_12.csv", encoding = "ISO-8859-1")
+    df = pd.read_csv("health_ineq_online_table_12.csv", encoding = "ISO-8859-1")
+    df['fips'] = ['{:05}'.format(num) for num in df.cty]
+    return df
+
+
+def choro_map(geo_data, df, column):
+  tooltip_cols = ('name:O', 'state:O')
+  chart = alt.Chart(geo_data).mark_geoshape(
+  ).encode(
+    color=alt.Color('{}:Q'.format(column), scale=alt.Scale(type='log', scheme='greenblue')),
+    tooltip=[alt.Tooltip('properties.{}'.format(col), title=col.split(':')[0]) for col in tooltip_cols]
+  ).properties(
+    width=1000, height=600
+  ).transform_lookup(
+    lookup='properties.fips',
+    from_=alt.LookupData(df, "fips", [column])
+  ).project(
+    'albersUsa'
+  )
+
+  return chart
 
 
 df = load_data()
@@ -145,3 +174,6 @@ Our design in greater detail:
   A map from state to region can be found here: https://github.com/cphalpert/census-regions/blob/master/us%20census%20bureau%20regions%20and%20divisions.csv.
 
 """
+
+counties_data = load_geodata()
+st.write(choro_map(counties_data, df, 'pop_density'))
