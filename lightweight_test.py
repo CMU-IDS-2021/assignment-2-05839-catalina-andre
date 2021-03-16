@@ -9,15 +9,16 @@ from vega_datasets import data
 
 
 def clustering_visual(df):
-  feature_matrix = df.select_dtypes(include='number').to_numpy(na_value=0)
-  clustering = KMeans().fit(feature_matrix)
-  tsne_embed = TSNE().fit_transform(feature_matrix)
+    feature_matrix = df.select_dtypes(include='number').to_numpy(na_value=0)
+    clustering = KMeans().fit(feature_matrix)
+    tsne_embed = TSNE().fit_transform(feature_matrix)
 
-  tsne_df = pd.DataFrame({
-    'tsne_x': tsne_embed[:, 0],
-    'tsne_y': tsne_embed[:, 1],
-    'cluster': clustering.labels_})
-  return tsne_df
+    tsne_df = pd.DataFrame({
+        'tsne_x': tsne_embed[:, 0],
+        'tsne_y': tsne_embed[:, 1],
+        'cluster': clustering.labels_})
+    return tsne_df
+
 
 st.title("Let's analyze some Social Mobility Data 📊.")
 
@@ -28,98 +29,43 @@ def load_data():
     return pd.read_csv("health_ineq_online_table_12.csv", encoding="ISO-8859-1")
 
 
+@st.cache
+def load_counties():
+    return alt.topo_feature(data.us_10m.url, 'counties')
+
+
 df = load_data()
 
 st.write("Let's look at the raw data in a Pandas Data Frame.")
 
 st.write(df)
 
-st.write(
-    "Whew, that's a lot of columns!  Hmm 🤔, is there some correlation between the population and median house value? "
-    "Let's make a scatterplot with [Altair](https://altair-viz.github.io/) to find out!")
+counties = load_counties()
 
-picked = alt.selection_single(encodings=["color"], empty="none")
-
-chart = alt.Chart(df).mark_point().encode(
-    x=alt.X("cty_pop2000", scale=alt.Scale(zero=False)),
-    y=alt.Y("median_house_value", scale=alt.Scale(zero=False)),
-    color=alt.condition(picked, "statename:N", alt.value("lightgray"))
-).properties(
-    width=600, height=400
-).interactive().add_selection(picked)
-
-st.write(chart)
-
-st.write(df.median_house_value)
-
-st.write(
-    "Yikes, that isn't super helpful, everyone is bunched in the corner and the states are too numerous to be clearly "
-    "visible! Maybe we could do some filtering?")
-
-# have to specify y domain, otherwise the plot renders strangely, not sure why
-chart = alt.Chart(df).mark_point().encode(
-    x=alt.X("cty_pop2000", scale=alt.Scale(type='log')),
-    y=alt.Y("median_house_value", scale=alt.Scale(type='log', domain=[1, 10000000])),
-    color=alt.condition(picked, "statename:N", alt.value("lightgray"))
-).properties(
-    width=600, height=400
-).interactive().add_selection(picked)
-
-st.write(chart)
-
-st.write('Here is a first attempt at making this plot better by using log scales.',
-    'Unfortunately, still a bit crowded...')
-
-
-# avg all counties for each state, plot that avg as representative
-agg_df = df.groupby('statename').mean()
-agg_df['statename'] = [name for name, _ in df.groupby('statename')]
-
-chart = alt.Chart(agg_df).mark_point().encode(
-    x=alt.X("cty_pop2000", scale=alt.Scale(type='log')),
-    y=alt.Y("median_house_value", scale=alt.Scale(type='log', domain=[1, 10000000])),
-    color=alt.condition(picked, "statename:N", alt.value("lightgray"))
-).properties(
-    width=600, height=400
-).interactive().add_selection(picked)
-st.write(chart)
-
-st.write('This is less crowded and shows that median_house_value & city_pop2000 are not correlated',
-    'We should add tooltips so that on hover for each point, you see the state.',
-    'Also, instead of having both log-scale and linear scale plots, we can have a checkbox toggle for this')
-
-
-tsne_df = clustering_visual(df)
-
-chart = alt.Chart(tsne_df).mark_point().encode(
-    x=alt.X("tsne_x"),
-    y=alt.Y("tsne_y"),
-    color=alt.condition(picked, "cluster:N", alt.value("lightgray"))
-).properties(
-    width=600, height=400
-).interactive().add_selection(picked)
-st.write(chart)
-
-st.write("What I've done above is running kmeans clustering on all numeric data. We can probably find a better clustering",
-"But, the point is to answer 'Which counties are similar? We might find some interesting relationships this way.")
-
-
-counties = alt.topo_feature(data.us_10m.url, 'counties')
-source = df.to_json()
-
-us_map = alt.Chart(counties).mark_geoshape().encode(
-    color='rate:Q'
+counties_map = alt.Chart(counties).mark_geoshape().encode(
+    tooltip=["hhinc00:Q", 'county_name:N', 'statename:N'],
+    color='hhinc00:Q'
 ).transform_lookup(
     lookup='id',
-    from_=alt.LookupData(df, 'cty', ['hhinc00'])
+    from_=alt.LookupData(df, 'cty', ['hhinc00', 'county_name', 'statename'])
 ).project(
     type='albersUsa'
 ).properties(
-    width=500,
-    height=300
+    width=700,
+    height=500
 )
 
-st.write(us_map)
+states = alt.topo_feature(data.us_10m.url, 'states')
+
+states_map = alt.Chart(states).mark_geoshape(
+    stroke="black",
+    strokeWidth=1.5
+).properties(
+    width=700,
+    height=500
+)
+
+st.write(counties_map + states_map)
 
 # Observed Relationships in the data (generally at the state level seems to be appropriate for exploration
 """

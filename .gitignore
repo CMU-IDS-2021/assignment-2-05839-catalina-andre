@@ -128,4 +128,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# IDEA editor settings
 *idea*
+
+# Tableau Visualization Files
+*twb*

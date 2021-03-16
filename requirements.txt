@@ -2,3 +2,4 @@ streamlit
 pandas
 altair
 scikit-learn
+vega_datasets
