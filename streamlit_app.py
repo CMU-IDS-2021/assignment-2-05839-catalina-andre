@@ -185,6 +185,7 @@ chart = alt.Chart(
     df[df.statename.isin(all_states)].rename(mapper=column_names, axis=1),
     title=f"Comparing Percent Foreign Born to {compare_to}"
 ).mark_point().encode(
+    tooltip=["State:N", "County:N", "Percent Foreign Born:Q"],
     x=alt.X("Percent Foreign Born", scale=alt.Scale(zero=False), title="Percent Foreign Born"),
     y=alt.Y(first_columns[compare_to][0], scale=alt.Scale(zero=False), title=first_columns[compare_to][3]),
     color=alt.Color("State:N")
