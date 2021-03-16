@@ -28,8 +28,6 @@ def clustering_visual(df):
     'cluster': clustering.labels_})
   return tsne_df
 
-st.title("Let's analyze some Social Mobility Data 📊.")
-
 
 @st.cache
 def load_data():
@@ -39,14 +37,15 @@ def load_data():
     return df
 
 
-def choro_map(geo_data, df, column):
-  tooltip_cols = ('name:O', 'state:O')
+def choro_map(geo_data, df, column, scale):
+  tooltip_cols = ('properties.name:O', 'properties.state:O', '{}:Q'.format(column))
   chart = alt.Chart(geo_data).mark_geoshape(
   ).encode(
-    color=alt.Color('{}:Q'.format(column), scale=alt.Scale(type='log', scheme='greenblue')),
-    tooltip=[alt.Tooltip('properties.{}'.format(col), title=col.split(':')[0]) for col in tooltip_cols]
+    color=alt.Color('{}:Q'.format(column), scale=alt.Scale(type=scale, scheme='greenblue')),
+    tooltip=[alt.Tooltip(col, title=col.split(':')[0]) for col in tooltip_cols]
   ).properties(
-    width=1000, height=600
+    width=1000,
+    height=600
   ).transform_lookup(
     lookup='properties.fips',
     from_=alt.LookupData(df, "fips", [column])
@@ -57,6 +56,32 @@ def choro_map(geo_data, df, column):
   return chart
 
 
+def feature_dropdown(s, key, default_val):
+  remove_cols = ('fips', 'cz', 'state_id', 'stateabbrv', 'csa', 'cbsa', 'intersects_msa')
+  keep_cols = [c for c in df.columns if 'name' not in c and c not in remove_cols]
+  default_index = keep_cols.index(default_val)
+  return st.selectbox(s, keep_cols, key=key, index=default_index)
+
+
+def scale_dropdown(key):
+  return st.selectbox('Log or linear scale?', ('log', 'linear'), key=key)
+
+
+def pair_plot(df, x_str, y_str, scale_str, tooltip_cols=[]):
+  scale_params = {'zero': False} if scale_str == 'linear' else {'type': 'log', 'domain': [1, 10000000]}
+
+  return alt.Chart(df).mark_point().encode(
+      x=alt.X(x_str, scale=alt.Scale(type='log')),
+      y=alt.Y(y_str, scale=alt.Scale(**scale_params)),
+      tooltip=[alt.Tooltip(col, title=col.split(':')[0]) for col in tooltip_cols],
+      color = alt.Color('statename:N')
+  ).properties(
+      width=600,
+      height=400
+  )
+
+
+st.title("Let's analyze some Social Mobility Data 📊.")
 df = load_data()
 
 st.write("Let's look at the raw data in a Pandas Data Frame.")
@@ -66,6 +91,7 @@ st.write(df)
 st.write(
     "Whew, that's a lot of columns!  Hmm 🤔, is there some correlation between the population and median house value? "
     "Let's make a scatterplot with [Altair](https://altair-viz.github.io/) to find out!")
+
 
 picked = alt.selection_single(encodings=["color"], empty="none")
 
@@ -80,6 +106,12 @@ chart = alt.Chart(df).mark_point().encode(
 st.write(chart)
 
 st.write(df.median_house_value)
+
+scale = scale_dropdown('pair_plot_scale')
+x_str = feature_dropdown('Choose x-axis feature.', 'x_feature', 'cty_pop2000')
+y_str = feature_dropdown('Choose y-axis feature.', 'y_feature', 'median_house_value')
+st.write(pair_plot(df, x_str, y_str, scale, [x_str, y_str, 'county_name', 'statename']))
+
 
 st.write(
     "Yikes, that isn't super helpful, everyone is bunched in the corner and the states are too numerous to be clearly "
@@ -104,30 +136,23 @@ st.write('Here is a first attempt at making this plot better by using log scales
 agg_df = df.groupby('statename').mean()
 agg_df['statename'] = [name for name, _ in df.groupby('statename')]
 
-chart = alt.Chart(agg_df).mark_point().encode(
-    x=alt.X("cty_pop2000", scale=alt.Scale(type='log')),
-    y=alt.Y("median_house_value", scale=alt.Scale(type='log', domain=[1, 10000000])),
-    color=alt.condition(picked, "statename:N", alt.value("lightgray"))
-).properties(
-    width=600, height=400
-).interactive().add_selection(picked)
-st.write(chart)
+st.write(pair_plot(agg_df, x_str, y_str, scale, [x_str, y_str, 'statename']))
 
-st.write('This is less crowded and shows that median_house_value & city_pop2000 are not correlated',
-    'We should add tooltips so that on hover for each point, you see the state.',
-    'Also, instead of having both log-scale and linear scale plots, we can have a checkbox toggle for this')
 
+st.write('This is less crowded, though we lose some information.')
 
 tsne_df = clustering_visual(df)
 
 chart = alt.Chart(tsne_df).mark_point().encode(
     x=alt.X("tsne_x"),
     y=alt.Y("tsne_y"),
-    color=alt.condition(picked, "cluster:N", alt.value("lightgray"))
+    color=alt.Color("cluster:N")
 ).properties(
     width=600, height=400
-).interactive().add_selection(picked)
+)
+
 st.write(chart)
+
 
 st.write("What I've done above is running kmeans clustering on all numeric data. We can probably find a better clustering",
 "But, the point is to answer 'Which counties are similar? We might find some interesting relationships this way.")
@@ -194,4 +219,15 @@ Our design in greater detail:
 """
 
 counties_data = load_geodata()
-st.write(choro_map(counties_data, df, 'pop_density'))
+
+feature = feature_dropdown('Which feature would you like to look at?', 'choro_feature', 'cty_pop2000')
+
+scale = scale_dropdown('choro_scale')
+
+st.write(choro_map(counties_data, df, feature, scale))
+
+state = st.selectbox('Would you like to zoom in on any particular state?',
+  ['None'] + list(df.statename.unique()))
+
+if state != 'None':
+  st.write(choro_map(counties_data, df[df.statename == state], feature, scale))
