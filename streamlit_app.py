@@ -34,10 +34,10 @@ def load_geodata():
 
 @st.cache
 def clustering_visual(df):
-  ''' perform KMeans clustering on features '''
-  feature_matrix = df.select_dtypes(include='number').to_numpy(na_value=0)
-  clustering = KMeans().fit(feature_matrix)
-  tsne_embed = TSNE().fit_transform(feature_matrix)
+    ''' perform KMeans clustering on features '''
+    feature_matrix = df.select_dtypes(include='number').to_numpy(na_value=0)
+    clustering = KMeans().fit(feature_matrix)
+    tsne_embed = TSNE().fit_transform(feature_matrix)
 
     tsne_df = pd.DataFrame({
         'tsne_x': tsne_embed[:, 0],
