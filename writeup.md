@@ -4,10 +4,19 @@
 
 TODO: Update screenshot
 
-TODO: Short abstract describing the main goals and how you achieved them.
-
-Our project considered the key indicators of social mobility in American society through the lens of
-economic, health, and education indicators.
+One does not have to look far or hard to find political commentary peddling the dangers of allowing widespread
+immigration into the United States. When many voices speak with authority, it can be difficult to know what to listen
+to and how to distinguish fact from fiction. While data may not be perfect, and we certainly do not claim to be, we
+think that by exploring some of the statistics behind the claims, we can offer a different perspective. For our
+analysis we considered 
+[this summary](https://www.cato.org/blog/14-most-common-arguments-against-immigration-why-theyre-wrong) of common
+arguments against liberal immigration policies in America. It is written by
+[Alex Nowrasteh](https://www.cato.org/people/alex-nowrasteh), the Director of Immigration Studies at the Center For
+Global Liberty And Prosperity within the [CATO Institute](https://www.cato.org). The CATO institute is a Washington DC
+based think tank that has been in operation since the late 1970s.  While Mr. Nowrasteh offers some economic and
+theoretical counter arguments to common immigration concerns, we visualized data made available by Raj Chetty's
+(Harvard University) group, [Opportunity Insights](https://opportunityinsights.org), that studies social mobility
+within America to augment Mr. Nowrasteh's arguments.
 
 ## Project Goals
 

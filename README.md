@@ -1,7 +1,7 @@
 # CMU Interactive Data Science Assigment 2
 
 * **Team members**: amichell@andrew.cmu.edu and cvajiac@andrew.cmu.edu
-* **Online URL**: https://share.streamlit.io/cmu-ids-2021/assignment-2-05839-catalina-andre/master/streamlit_app.py (Update YYYY with your repo name)
+* **Online URL**: https://share.streamlit.io/cmu-ids-2021/assignment-2-05839-catalina-andre/master/streamlit_app.py
 
 ## Instructions
 
@@ -17,6 +17,6 @@ Before you can view your application online, you need to have it set up with Str
 
 ### Deliverables
 
-- [ ] An interactive data science or machine learning application using Streamlit.
-- [ ] The URL at the top of this readme needs to point to your application online. It should also list the names of the team members. 
-- [ ] A write-up that describes the goals of your application, justifies design decisions, and gives an overview of your development process. Use the `writeup.md` file in this repository. You may add more sections to the document than the template has right now.
+- [x] An interactive data science or machine learning application using Streamlit.
+- [x] The URL at the top of this readme needs to point to your application online. It should also list the names of the team members. 
+- [x] A write-up that describes the goals of your application, justifies design decisions, and gives an overview of your development process. Use the `writeup.md` file in this repository. You may add more sections to the document than the template has right now.
