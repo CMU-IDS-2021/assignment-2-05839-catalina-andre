@@ -265,11 +265,10 @@ st.write('How do these factors look like individually, across the US?')
 choro_features= ['puninsured2010', 'poor_share', 'cs_frac_black', 'cs_frac_hispanic', 'unemp_rate',
   'cs_born_foreign', 'hhinc00', 'cs_educ_ba', 'crime_total']
 #choro_features = list(df.columns)
-feature = feature_dropdown('Which feature would you like to look at?', 'choro_feature', 'crime_total', choro_features)
-scale = scale_dropdown('choro_scale')
+feature = feature_dropdown('Which feature would you like to look at?', 'choro_feature', 'cs_born_foreign', choro_features)
 
 counties_data = load_geodata()
-st.write(choro_map(counties_data, df, feature, scale))
+st.write(choro_map(counties_data, df, feature, 'linear'))
 
 state = st.selectbox('Would you like to zoom in on any particular state?',
   ['None'] + list(df.statename.unique()))
