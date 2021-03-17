@@ -9,27 +9,28 @@ from vega_datasets import data
 
 # mapping the features in our df that interest us to nice strings for vis
 feature_titles = [
-  ('puninsured2010', '% uninsured'),
-  ('poor_share', 'poverty rate'),
-  ('cs_frac_black', '% black'),
-  ('cs_frac_hisp', '% hispanic'),
-  ('unemp_rate', 'unemployment rate'),
-  ('cs_born_foreign', '% foreign-born'),
-  ('hhinc00', 'avg. household income'),
-  ('cs_educ_ba', '% with Bachelors degree'),
-  ('crime_total', 'crime rate')
+    ('puninsured2010', '% uninsured'),
+    ('poor_share', 'poverty rate'),
+    ('cs_frac_black', '% black'),
+    ('cs_frac_hisp', '% hispanic'),
+    ('unemp_rate', 'unemployment rate'),
+    ('cs_born_foreign', '% foreign-born'),
+    ('hhinc00', 'avg. household income'),
+    ('cs_educ_ba', '% with Bachelors degree'),
+    ('crime_total', 'crime rate')
 ]
 
 title_to_feature = {b: a for a, b in feature_titles}
 feature_to_title = {a: b for a, b in feature_titles}
 
+
 @st.cache
 def load_geodata():
-  ''' load topographical data for US county data '''
-  return alt.topo_feature(
-    "https://raw.githubusercontent.com/deldersveld/topojson/master/countries/united-states/us-albers-counties.json",
-    "collection"
-  )
+    ''' load topographical data for US county data '''
+    return alt.topo_feature(
+        "https://raw.githubusercontent.com/deldersveld/topojson/master/countries/united-states/us-albers-counties.json",
+        "collection"
+    )
 
 
 @st.cache
@@ -60,36 +61,37 @@ def load_counties():
 
 
 def choro_map(geo_data, df, column, scale):
-  ''' render choropleth map using topo layout from @geo_data,
+    ''' render choropleth map using topo layout from @geo_data,
       colored by feature @column in data @df, using linear or log @scale '''
-  def get_title(s): # get display title for tooltips
-    s = s.split(':')[0]
-    if s.startswith('properties'):
-      s = s.split('.')[1]
-    return feature_to_title.get(s, s)
 
-  col_feature = title_to_feature.get(column, column)
-  tooltip_cols = ('properties.name:O', 'properties.state:O', '{}:Q'.format(col_feature))
+    def get_title(s):  # get display title for tooltips
+        s = s.split(':')[0]
+        if s.startswith('properties'):
+            s = s.split('.')[1]
+        return feature_to_title.get(s, s)
 
-  return alt.Chart(geo_data).mark_geoshape(
-  ).encode(
-    color=alt.Color('{}:Q'.format(col_feature), title=column, scale=alt.Scale(type=scale, scheme='greenblue')),
-    tooltip=[alt.Tooltip(col, title=get_title(col)) for col in tooltip_cols]
-  ).properties(
-    width=800,
-    height=600
-  ).transform_lookup(
-    lookup='properties.fips',
-    from_=alt.LookupData(df, "fips", [col_feature])
-  ).project(
-    'albersUsa'
-  )
+    col_feature = title_to_feature.get(column, column)
+    tooltip_cols = ('properties.name:O', 'properties.state:O', '{}:Q'.format(col_feature))
+
+    return alt.Chart(geo_data).mark_geoshape(
+    ).encode(
+        color=alt.Color('{}:Q'.format(col_feature), title=column, scale=alt.Scale(type=scale, scheme='greenblue')),
+        tooltip=[alt.Tooltip(col, title=get_title(col)) for col in tooltip_cols]
+    ).properties(
+        width=800,
+        height=600
+    ).transform_lookup(
+        lookup='properties.fips',
+        from_=alt.LookupData(df, "fips", [col_feature])
+    ).project(
+        'albersUsa'
+    )
 
 
 def feature_dropdown(s, key, default_val, features):
-  get_title = lambda x: feature_to_title[x] if x in feature_to_title else x
-  default_index = features.index(default_val)
-  return st.selectbox(s, [get_title(f) for f in features], key=key, index=default_index)
+    get_title = lambda x: feature_to_title[x] if x in feature_to_title else x
+    default_index = features.index(default_val)
+    return st.selectbox(s, [get_title(f) for f in features], key=key, index=default_index)
 
 
 def scale_dropdown(key):
@@ -121,7 +123,6 @@ def find_common(row):
 
 st.title("Confronting Stereotypes in the Immigration Debate.")
 df = load_data()
-
 
 st.markdown("One does not have to look far or hard to find political commentary peddling the dangers of allowing "
             "widespread immigration into the United States. When many voices speak with authority, it can be difficult "
@@ -171,13 +172,12 @@ first_columns = {
     "High School Dropout Rate":
         ("dropout_r", "Highest High School Dropout Rates", False, "High School Dropout Rate"),
     "Percent College Graduates":
-        ("graduate_r", "Lowest Rate of College Graduation", True, "Percent With a College Degree")
+        ("cs_educ_ba", "Lowest Rate of College Graduation", True, "Percent With a College Degree")
 }
 table_index = pd.Index([i for i in range(1, 11)])
 column_names = {
     "county_name": "County",
     "statename": "State",
-    "cs_labforce": "Labor Force Participation",
     "bmi_obese_q2": "BMI",
     "cs_born_foreign": "Percent Foreign Born"
 }
@@ -218,7 +218,13 @@ chart = alt.Chart(
     height=600
 )
 
-st.write(chart)
+chart_regression = \
+    chart.transform_regression("Percent Foreign Born", first_columns[compare_to][0]) \
+        .mark_line(color="red") \
+        .transform_fold(["regression-line"], as_=["Regression", "y"]) \
+        .encode(alt.Color("Regression:N"))
+
+st.write(chart + chart_regression)
 
 st.write("As we can see from playing with this data, at least in the extremes the negative outcomes which some argue "
          "come from having more immigrants don't really seem to be correlated in our data.")
@@ -227,6 +233,8 @@ st.write("If having a higher proportion of immigrants in your county isn't an in
          "what is it related to?")
 
 # create three charts showing things which are at least somewhat correlated to immigrant presence in the community
+
+column_names["cs_labforce"] = "Labor Force Participation"
 
 lab_force_part = alt.Chart(
     df.rename(mapper=column_names, axis=1)
@@ -242,6 +250,7 @@ lab_force_regression = \
 percent_obese = alt.Chart(
     df.rename(mapper=column_names, axis=1)
 ).mark_point(color="lightblue").encode(
+    tooltip=["BMI:Q", "Percent Foreign Born:Q", "County:N", "State:N"],
     x=alt.X("Percent Foreign Born", scale=alt.Scale(zero=False), title="Percent Foreign Born"),
     y=alt.Y("BMI", scale=alt.Scale(zero=False), title="Percent Obese")
 )
@@ -260,18 +269,69 @@ st.write("Our data suggests that in terms of health and economy, having a high n
          "actually be a good thing! While there is a lot of noise in the data, it does seem that there is a general "
          "correlation between a high percentage of immigrants and more people working and being *generally* healthy.")
 
+st.write("Perhaps even more compelling than this, however, is a more in depth comparison of the states with the "
+         "greatest and fewest number of immigrants.  Let's consider the top and bottom 5 states by percentage of "
+         "the population that are immigrants and see how those states perform in one simple measure, the percentage "
+         "of college graduates.")
+
+most_immigrants_df = df.groupby("statename").mean().sort_values("cs_born_foreign", ascending=False).head(5)
+least_immigrants_df = df.groupby("statename").mean().sort_values("cs_born_foreign", ascending=True).head(5)
+top_5_states = set(most_immigrants_df.index.tolist())
+bottom_5_states = set(least_immigrants_df.index.tolist())
+
+column_names["cs_educ_ba"] = "Percent College Graduates"
+
+top_5_foreign_college = alt.Chart(
+    df.rename(mapper=column_names, axis=1)[df.statename.isin(top_5_states)]
+).mark_point(color="lightblue").encode(
+    tooltip=["Percent College Graduates:Q", "Percent Foreign Born:Q", 'County:N', 'State:N'],
+    x=alt.X("Percent Foreign Born", scale=alt.Scale(zero=False)),
+    y=alt.Y("Percent College Graduates", scale=alt.Scale(zero=False)),
+)
+
+t5foreigncollege_regression = top_5_foreign_college\
+    .transform_regression("Percent Foreign Born", "Percent College Graduates") \
+    .mark_line(color="red")
+
+bottom_5_foreign_college = alt.Chart(
+    df.rename(mapper=column_names, axis=1)[df.statename.isin(bottom_5_states)]
+).mark_point(color="lightblue").encode(
+    tooltip=["Percent College Graduates:Q", "Percent Foreign Born:Q", 'County:N', 'State:N'],
+    x=alt.X("Percent Foreign Born", scale=alt.Scale(zero=False)),
+    y=alt.Y("Percent College Graduates", scale=alt.Scale(zero=False))
+)
+
+b5foreigncollege_regression = bottom_5_foreign_college\
+    .transform_regression("Percent Foreign Born", "Percent College Graduates")\
+    .mark_line(color="red")
+
+col1, col2 = st.beta_columns(2)
+
+col1.subheader("The 5 States with the **most** immigrants")
+col1.write(top_5_foreign_college + t5foreigncollege_regression)
+col2.subheader("The 5 States with the **fewest** immigrants")
+col2.write(bottom_5_foreign_college + b5foreigncollege_regression)
+
+st.write("There is a clear positive correlation between the percentage of the population "
+         "in a county who are immigrants and the percentage of that same population who have graduated from college. "
+         "While this could be that more immigrants move to places where people are more educated or that more "
+         "immigrants value higher education, both are indicative of a *positive* trend. It is also really interesting "
+         "here how the correlation is more clear in states with fewer immigrants overall than in states with more "
+         "immigrants.")
+
 st.write('How do these factors look like individually, across the US?')
 
-choro_features= ['puninsured2010', 'poor_share', 'cs_frac_black', 'cs_frac_hispanic', 'unemp_rate',
-  'cs_born_foreign', 'hhinc00', 'cs_educ_ba', 'crime_total']
-#choro_features = list(df.columns)
-feature = feature_dropdown('Which feature would you like to look at?', 'choro_feature', 'cs_born_foreign', choro_features)
+choro_features = ['puninsured2010', 'poor_share', 'cs_frac_black', 'cs_frac_hispanic', 'unemp_rate',
+                  'cs_born_foreign', 'hhinc00', 'cs_educ_ba', 'crime_total']
+
+feature = feature_dropdown('Which feature would you like to look at?', 'choro_feature', 'cs_born_foreign',
+                           choro_features)
 
 counties_data = load_geodata()
 st.write(choro_map(counties_data, df, feature, 'linear'))
 
 state = st.selectbox('Would you like to zoom in on any particular state?',
-  ['None'] + list(df.statename.unique()))
+                     ['None'] + list(df.statename.unique()))
 
 if state != 'None':
-  st.write(choro_map(counties_data, df[df.statename == state], feature, scale))
+    st.write(choro_map(counties_data, df[df.statename == state], feature, "linear"))
