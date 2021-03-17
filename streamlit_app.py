@@ -130,7 +130,7 @@ st.markdown("One does not have to look far or hard to find political commentary 
             "offer a different perspective. For our analysis we considered [this summary]"
             "(https://www.cato.org/blog/14-most-common-arguments-against-immigration-why-theyre-wrong) "
             "of common arguments against liberal immigration policies in America. It is written by "
-            "[Alex Nowrasteh](https://www.cato.org/people/alex-nowrasteh), the Directory OF Immigration Studies at the "
+            "[Alex Nowrasteh](https://www.cato.org/people/alex-nowrasteh), the Director of Immigration Studies at the "
             "Center For Global Liberty And Prosperity within the [CATO Institute](https://www.cato.org). The CATO "
             "institute is a Washington DC based think tank that has been in operation since the late 1970s. While "
             "Mr. Nowrasteh offers some economic and theoretical counter arguments to common immigration concerns, we "
