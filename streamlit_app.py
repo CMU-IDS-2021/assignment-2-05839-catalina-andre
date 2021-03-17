@@ -274,4 +274,4 @@ state = st.selectbox('Would you like to zoom in on any particular state?',
   ['None'] + list(df.statename.unique()))
 
 if state != 'None':
-  st.write(choro_map(counties_data, df[df.statename == state], feature, scale))
+  st.write(choro_map(counties_data, df[df.statename == state], feature, 'linear'))
